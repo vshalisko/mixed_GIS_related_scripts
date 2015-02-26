@@ -6,6 +6,7 @@
 
 By Viacheslav Shalisko 2015
 
+-------------------
 This is free and unencumbered software released into the public domain.
 Anyone is free to copy, modify, publish, use, compile, sell, or
 distribute this software, either in source code form or as a compiled
@@ -27,6 +28,7 @@ ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org>
 
+-------------------
 
 ### 1) Definir las variables
 
@@ -36,13 +38,13 @@ For more information, please refer to <http://unlicense.org>
 
 *my_out_statistics_table* - nombre del archivo de tabla para almacenar estadistica por clase en el formato CSV (esta tabla se reescribe cada vez que se ejecuta el script)
 
-*my_out_statistics_table* - nombre del archivo de tabla para almacenar valeres de frecuencias en histogramas por clase en el formato CSV (esta tabla se reescribe cada vez que se ejecuta el script)
+*my_out_histogram_table* - nombre del archivo de tabla para almacenar valeres de frecuencias en histogramas por clase en el formato CSV (esta tabla se reescribe cada vez que se ejecuta el script)
 
 *my_category_field* - columna de tabla con variable categorica que determina clases
 
 *my_interest_field* - columna de tabla con variable cuantitativa a anlizar
 
-*my_breaks* - los valores de separación de rangos en histograma de variable cuantitativa; es importante que los valores minimo y maximo de los rangos deben encontrarse fuera de rango de los valores observados de la variable cuantitativa; el límite inferior de variables debe ser mayor que 0, ya que la representación logaritmica no permite tener valor 0 o negativo de rangos; ejemplo: 1e-10,0.1,1,5,10,20,30
+*my_breaks* - los valores de separación de rangos en histograma de variable cuantitativa; es importante que los valores minimo y maximo de los rangos deben encontrarse fuera de rango de los valores observados de la variable cuantitativa; en caso que no es así script agrega los rangos adicionales para incluir el maximo y/o minimo de datos observados
 
 *my_title* - titulo común para histogramas
 
@@ -58,7 +60,7 @@ my_out_histogram_table <- 'cuadrados1ha_industrias_SJ_municipios_histogramas.csv
 my_category_field = "CVE_MUN"
 my_interest_field = "industr_ha"
 
-my_breaks <- c(1e-10,0.1,1,5,10,20,30)
+my_breaks <- c(0,1,3,4,5,10,30)
 my_title = "industrias por ha"
 
 ```
@@ -85,9 +87,18 @@ my_count <- function(x, ...){
   return(c(n=n))
 }
 
+my_data[,my_category_field] <- as.factor(my_data[,my_category_field])
+
 category_field_values <- unique(my_data[,my_category_field], incomparables = FALSE)
 dim(my_data)
 summary(my_data)
+
+if (min(my_breaks) > min(my_data[,my_interest_field])) {
+  my_breaks <- c(min(my_data[,my_interest_field]), my_breaks)
+}
+if (max(my_breaks) < max(my_data[,my_interest_field])) {
+  my_breaks <- c(my_breaks, max(my_data[,my_interest_field]))
+}
 
 my_quantile_total <- as.vector(quantile(my_data[[my_interest_field]],na.rm = TRUE))
 
@@ -108,7 +119,7 @@ Lista de valores de variable categorica: `r category_field_values`;
 
 ### 4) Calcular las estadisticas por variable categorica y guardar tabla en forma del archivo CSV
 
-```{r cache = TRUE}
+```{r}
 
 my_mean <- aggregate(my_data[[my_interest_field]], list(categories = my_data[[my_category_field]]), 
            FUN = mean, na.rm = TRUE)
@@ -131,47 +142,68 @@ my_table
 write.table(my_table, file = file.path(my_path, my_out_statistics_table), sep = ",", row.names = FALSE)
 ```
 
-### 4) Visualizar histogramas de la columna de interes en todo conjunto de datos
+### 5) Visualizar histogramas de la columna de interes en todo conjunto de datos
 
-```{r fig.width=8, fig.height=6}
-par(mfcol = c(1, 2))
+```{r fig.width=8, fig.height=6, warning = FALSE}
+par(mfcol = c(1, 2), cex = 0.8)
+
+# the histogram with width of bars proportional to intervals in x axis
 H0 <- hist(my_data[,my_interest_field], prob=FALSE, 
           col="grey", main=my_title, breaks=my_breaks, 
-          xlab="densidad", ylab="observaciones") 
+          xlab="rangos", ylab="observaciones") 
 
-HA <- hist(log10(my_data[,my_interest_field]), prob=FALSE, 
-          col="grey", breaks=log10(my_breaks), 
-          axes = FALSE, main=my_title,
-          xlab="densidad", ylab="observaciones") 
+# An option: logarithmic histogram
+#HA <- hist(log10(my_data[my_data$my_interest_field > 0,my_interest_field]), prob=FALSE, 
+#          col="grey", breaks=log10(my_breaks), 
+#          axes = FALSE, main=my_title,
+#          xlab="densidad", ylab="observaciones") 
+
+# the histogram with fixed width of bars
+B0 <- barplot(H0$counts, 
+        axes = FALSE, main=my_title,
+        space = 0, labels = TRUE,
+        ylim = c(-0.05 * max(H0$counts), 1.05 * max(H0$counts)),  # this is scaling to make the output similar to the other one
+        col="grey", xlab="rangos")
 Axis(side = 2)
-Axis(at = HA$breaks, labels = 10^HA$breaks, side = 1)
+Axis(at = seq(from = 0, to = length(my_breaks) - 1, by = 1), labels = my_breaks, side = 1)
+text(B0, H0$counts + 0.025 * max(H0$counts), labels=round(H0$counts)) # adding and positioning bar labels
 
-HA$counts
+H0$counts
 
 my_hist_table <- data.frame(t(rep(NA,length(my_breaks))))
 names(my_hist_table) <- c("CVE_MUN",my_breaks[1:length(my_breaks)-1])
 
-my_hist_table = rbind(my_hist_table, c(toString("Total"), HA$counts))
+my_hist_table = rbind(my_hist_table, c(toString("Total"), H0$counts))
 
 ```
 
-### 5) Visualizar histogramas de la columna de interes por clase y almacenar los valores de frecuencias por rango por clase
+### 6) Visualizar histogramas de la columna de interes por clase y almacenar los valores de frecuencias por rango por clase
 
-```{r warning = FALSE}
+```{r  fig.width=8, fig.height=6, warning = FALSE}
 for (i in 1:length(category_field_values) ) {
   print_text <- paste("Histograma para clase:",category_field_values[i], sep = " ")
   print(print_text)
-  par(cex = 0.8)
-    HB <- hist(my_data[my_data[[my_category_field]] == category_field_values[i], my_interest_field], 
-            prob=FALSE, col="grey", breaks = my_breaks, labels = TRUE,
-            main=paste(my_title,"-",category_field_values[i], sep = " "),
-            xlab="densidad", ylab="observaciones") 
   
-  my_hist_table = rbind(my_hist_table, c(toString(category_field_values[i]), HB$counts))
+  par(mfcol = c(1, 2), cex = 0.8)
+    HB <- hist(my_data[my_data[[my_category_field]] == category_field_values[i], my_interest_field], 
+            prob=FALSE, col="grey", breaks = my_breaks, labels = FALSE,
+            main=paste(my_title,"-",category_field_values[i], sep = " "),
+            xlab="rangos", ylab="observaciones") 
+  
+    BB <- barplot(HB$counts, 
+        axes = FALSE, main=my_title,
+        space = 0, labels = TRUE,
+        ylim = c(-0.05 * max(HB$counts), 1.05 * max(HB$counts)), 
+        col="grey", xlab="rangos")
+    Axis(side = 2)
+    Axis(at = seq(from = 0, to = length(my_breaks) - 1, by = 1), labels = my_breaks, side = 1)
+    text(BB, HB$counts + 0.025 * max(HB$counts), labels=round(HB$counts))
+  
+    my_hist_table = rbind(my_hist_table, c(toString(category_field_values[i]), HB$counts))
 }
 ```
 
-### 6) Representar la tabla de frecuencias por clase en rangos de histograma y guardar en forma del archivo CSV
+### 7) Representar la tabla de frecuencias por clase en rangos de histograma y guardar en forma del archivo CSV
 
 ```{r}
 my_hist_table = my_hist_table[-1,]
