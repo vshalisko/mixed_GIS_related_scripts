@@ -1,7 +1,7 @@
 ## Histogramas y subtotales por clase
 ========================================================
 
-### Script para visualización de las histogramas y calculo de las estadisticas descriptivas por clase de la variable categorica.
+### Script para visualización de las histogramas y calculo de las estadisticas descriptivas por clase de la variable categorica, variante con exclusión de os valores atípicos.
 
 
 By Viacheslav Shalisko 2015
@@ -51,18 +51,17 @@ For more information, please refer to <http://unlicense.org>
 
 ```{r}
 # Definir variables aqui:
-# Definir variables aqui:
 
-my_path <- "C:\\IMEPLAN\\Densidad_Vivienda\\Estadisticas_R\\Industria"
-my_filename <- 'Manzanas_industrias_municipios.dbf'
-my_out_statistics_table <- 'Manzanas_industrias_statistics.csv'
-my_out_histogram_table <- 'Manzanas_industrias_histogramas.csv'
+my_path <- "C:\\imeplan\\Estadisticas_R\\Poblacion No Residente"
+my_filename <- 'cuadros_1ha_indice_de_habitantes_por_viviendal.dbf'
+my_out_statistics_table <- 'cuadros_1ha_indice_de_habitantes_removing_anomalies_por_viviendal_statistics.csv'
+my_out_histogram_table <- 'cuadros_1ha_indice_de_habitantes_por_viviendal_removing_anomalies_histogramas.csv'
 
-my_category_field = "CLAVE"
-my_interest_field = "Dens_indus"
+my_category_field = "Cve_mun"
+my_interest_field = "In_De_Viv"
 
-my_breaks <- c(0,1,2,3,4,5,10,30)
-my_title = "industrias por Ha"
+my_breaks <- c(0,0.5,1,1.5,2,2.5,3,3.5,4,4.5,5,10)
+my_title = "habitantes por vivenda por 1 Ha"
 
 ```
 
@@ -91,8 +90,28 @@ my_count <- function(x, ...){
 my_data[,my_category_field] <- as.factor(my_data[,my_category_field])
 
 category_field_values <- unique(my_data[,my_category_field], incomparables = FALSE)
+# summary of source data
 dim(my_data)
 summary(my_data)
+
+my_quantile_total_init <- as.vector(quantile(my_data[[my_interest_field]],na.rm = TRUE))
+
+# excluding anomalous data (data oustide of 3 IQR counted from Q1 & Q3)
+my_anomal_data_indicator <- (( my_data[,my_interest_field] > my_quantile_total_init[4] + 
+                               3 * (my_quantile_total_init[4] - my_quantile_total_init[2]) ) | 
+                               ( my_data[,my_interest_field] < my_quantile_total_init[2] - 
+                               3 * (my_quantile_total_init[4] - my_quantile_total_init[2])) )
+
+
+summary(my_anomal_data_indicator)
+
+my_data <- my_data[!my_anomal_data_indicator,]
+
+# summary of data without anomalous values
+dim(my_data)
+summary(my_data)
+
+my_quantile_total <- as.vector(quantile(my_data[[my_interest_field]],na.rm = TRUE))
 
 if (min(my_breaks) > min(my_data[,my_interest_field])) {
   my_breaks <- c(min(my_data[,my_interest_field]), my_breaks)
@@ -101,7 +120,7 @@ if (max(my_breaks) < max(my_data[,my_interest_field])) {
   my_breaks <- c(my_breaks, max(my_data[,my_interest_field]))
 }
 
-my_quantile_total <- as.vector(quantile(my_data[[my_interest_field]],na.rm = TRUE))
+
 
 my_table_line <- c("Total", my_count(my_data[[my_interest_field]]), 
                         mean(my_data[[my_interest_field]],na.rm = TRUE), 
