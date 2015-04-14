@@ -1,0 +1,224 @@
+## Cargando y preprocesndo la tabla fuente
+
+```{r, echo = TRUE}
+library(fitdistrplus)
+
+denue_trabajo_c <- read.csv("Denue_AMG_ensayo_distribucion_right_censored.csv")
+dim(denue_trabajo_c)
+summary(denue_trabajo_c)
+
+my_breaks <- c(1,5,10,30,50,100,250,500)
+```
+
+## Histogramas de datos iniciales
+
+```{r, echo = TRUE}
+HA <- hist(log10(denue_trabajo_c[,2]), prob=FALSE, 
+          col="grey", breaks=log10(my_breaks), 
+          axes = FALSE, main="Caracter de distribución de empleados por entidad",
+          xlab="empleados por entidad", ylab="número de entidades") 
+Axis(side = 2)
+Axis(at = HA$breaks, labels = 10^HA$breaks, side = 1)
+```
+
+```{r, echo = TRUE}
+HB <- hist(log10(denue_trabajo_c[,2]), prob=TRUE, 
+          col="grey", breaks=log10(my_breaks), 
+          axes = FALSE, main="Caracter de distribución de empleados por entidad",
+          xlab="empleados por entidad", ylab="densidad de distribución") 
+Axis(side = 2)
+Axis(at = HB$breaks, labels = 10^HB$breaks, side = 1)
+```
+
+## Ajuste de la distribución log-normal
+
+```{r, echo = TRUE, cache = TRUE}
+denue_fit_norm_c <- fitdistcens(denue_trabajo_c,"lnorm",start=NULL, fix.arg=NULL)
+denue_fit_norm_c_summary <- summary(denue_fit_norm_c)
+denue_fit_norm_c_summary
+```
+
+```{r, echo = TRUE}
+x <- seq(0, 500, length=10000)
+estimated_meanlog <- denue_fit_norm_c_summary[["estimate"]][["meanlog"]]
+estimated_sdlog <- denue_fit_norm_c_summary[["estimate"]][["sdlog"]]
+P1 <- plot(log10(x), 
+            dlnorm(x, meanlog = estimated_meanlog, 
+                   sdlog = estimated_sdlog), 
+            type="l", lty=1, lwd=2, col="blue", xlim = c(0,3),
+            axes = FALSE, main="Distribución log-normal ajustada",
+            xlab="empleados por empresa", ylab="densidad de distribución")
+Axis(side = 2)
+Axis(at = HB$breaks, labels = 10^HB$breaks, side = 1)
+```
+
+## Seleccionar las empresas con mas que 5 empleados
+
+```{r, echo = TRUE}
+denue_trabajo_filtrado <- denue_trabajo_c[denue_trabajo_c[,2] > 5,]
+dim(denue_trabajo_filtrado)
+summary(denue_trabajo_filtrado)
+```
+
+## Ajustar la distribución gamma para esta parte de datos
+
+```{r, echo = TRUE, warning = FALSE, cache = TRUE}
+denue_fit_gamma_filtrado <- fitdistcens(denue_trabajo_filtrado,
+                                       "gamma",start=NULL, fix.arg=NULL)
+denue_fit_gamma_filtrado_summary <- summary(denue_fit_gamma_filtrado)
+denue_fit_gamma_filtrado_summary
+```
+
+```{r, echo = TRUE}
+estimated_shape_filtrado <- denue_fit_gamma_filtrado_summary[["estimate"]][["shape"]]
+estimated_rate_filtrado <- denue_fit_gamma_filtrado_summary[["estimate"]][["rate"]]
+P1 <- plot(log10(x), 
+            dgamma(x, estimated_shape_filtrado, 
+                    rate = estimated_rate_filtrado), 
+            type="l", lty=1, lwd=2, col="red", xlim = c(0,3),
+            axes = FALSE, main="Distribución gamma ajustada",
+            xlab="empleados por empresa", ylab="densidad de distribución")
+Axis(side = 2)
+Axis(at = HB$breaks, labels = 10^HB$breaks, side = 1)
+```
+
+## Ajuste de la distribución log-normal para esta parte de datos
+
+```{r, echo = TRUE, cache = TRUE}
+denue_fit_norm_filtrado <- fitdistcens(denue_trabajo_filtrado,"lnorm",start=NULL, fix.arg=NULL)
+denue_fit_norm_filtrado_summary <- summary(denue_fit_norm_filtrado)
+denue_fit_norm_filtrado_summary
+```
+
+```{r, echo = TRUE}
+x <- seq(0, 500, length=10000)
+estimated_meanlog_filtrado <- denue_fit_norm_filtrado_summary[["estimate"]][["meanlog"]]
+estimated_sdlog_filtrado <- denue_fit_norm_filtrado_summary[["estimate"]][["sdlog"]]
+P1 <- plot(log10(x), 
+            dlnorm(x, meanlog = estimated_meanlog_filtrado, 
+                   sdlog = estimated_sdlog_filtrado), 
+            type="l", lty=1, lwd=2, col="blue", xlim = c(0,3),
+            axes = FALSE, main="Distribución log-normal ajustada",
+            xlab="empleados por empresa", ylab="densidad de distribución")
+Axis(side = 2)
+Axis(at = HB$breaks, labels = 10^HB$breaks, side = 1)
+```
+
+## Definición de las funciones de generan de los numeros aleatorios con distribuciones deseadas
+
+```{r, echo = TRUE}
+set.seed(1234)
+
+fun_rgamma_truncate <- function(len, low, high, gamma_shape, gamma_rate) { 
+  i <- 1
+  x <- vector()
+  while (i < len) { 
+    y <- rgamma(100000, gamma_shape, rate = gamma_rate) 
+    y <- y[(as.numeric(y) < as.numeric(high)) & (as.numeric(y) > as.numeric(low))]
+    x <- append(x,y)
+    i <- length(x)
+  } 
+  x[1:len]
+} 
+
+fun_lnorm_truncate <- function(len, low, high, lnorm_mean, lnorm_sd) { 
+  i <- 1
+  x <- vector()
+  while (i < len) { 
+    y <- rlnorm(10000, meanlog = lnorm_sd, sdlog = lnorm_sd) 
+    y <- y[(as.numeric(y) < as.numeric(high)) & (as.numeric(y) > as.numeric(low))]
+    x <- append(x,y)
+    i <- length(x)
+  } 
+  x[1:len]
+} 
+```
+
+## Pruebas de salida de numeros aleatorios en los intervalos de interes
+
+```{r, echo = TRUE}
+fun_lnorm_truncate(5,5,10,
+                    denue_fit_norm_c_summary[["estimate"]][["meanlog"]],
+                    denue_fit_norm_c_summary[["estimate"]][["sdlog"]])
+
+fun_lnorm_truncate(5,30,50,
+                    denue_fit_norm_c_summary[["estimate"]][["meanlog"]],
+                    denue_fit_norm_c_summary[["estimate"]][["sdlog"]])
+
+fun_rgamma_truncate(5,30,50,
+                    denue_fit_gamma_filtrado_summary[["estimate"]][["shape"]],
+                    denue_fit_gamma_filtrado_summary[["estimate"]][["rate"]])
+
+fun_lnorm_truncate(5,30,50,
+                    denue_fit_norm_filtrado_summary[["estimate"]][["meanlog"]],
+                    denue_fit_norm_filtrado_summary[["estimate"]][["sdlog"]])
+
+fun_lnorm_truncate(5,100,250,
+                    denue_fit_norm_c_summary[["estimate"]][["meanlog"]],
+                    denue_fit_norm_c_summary[["estimate"]][["sdlog"]])
+
+fun_rgamma_truncate(5,100,250,
+                    denue_fit_gamma_filtrado_summary[["estimate"]][["shape"]],
+                    denue_fit_gamma_filtrado_summary[["estimate"]][["rate"]])
+
+fun_lnorm_truncate(5,100,250,
+                    denue_fit_norm_filtrado_summary[["estimate"]][["meanlog"]],
+                    denue_fit_norm_filtrado_summary[["estimate"]][["sdlog"]])
+
+fun_rgamma_truncate(5,250,500,
+                    denue_fit_gamma_filtrado_summary[["estimate"]][["shape"]],
+                    denue_fit_gamma_filtrado_summary[["estimate"]][["rate"]])
+```
+
+## Generar un juego de 10 replicas de posible numero de empleados para cada linea de datos (temporalmente para generación de números se utuliza copia de tabla de datos sin valores NA)
+
+```{r, echo = TRUE}
+lim1 <- as.numeric(1)
+#lim1 <- as.numeric(167000)
+lim2 <- nrow(denue_trabajo_c)
+#lim2 <- as.numeric(168000)
+
+denue_trabajo_random <- data.frame()
+for(row_counter in lim1:lim2) {  
+  random_list <- vector()
+  row <- denue_trabajo_c[row_counter, ]
+  if( !is.na(row["right"]) & (row["right"] < 100) ) {
+          random_list <- fun_lnorm_truncate(10,row["left"],row["right"],
+                    denue_fit_norm_c_summary[["estimate"]][["meanlog"]],
+                    denue_fit_norm_c_summary[["estimate"]][["sdlog"]])    
+  } else {
+      if( is.na(row["right"]) ) {
+           random_list <- fun_rgamma_truncate(10,row["left"],10000,
+                    denue_fit_gamma_filtrado_summary[["estimate"]][["shape"]],
+                    denue_fit_gamma_filtrado_summary[["estimate"]][["rate"]])           
+      } else {
+          random_list <- fun_rgamma_truncate(10,row["left"],row["right"],
+                    denue_fit_gamma_filtrado_summary[["estimate"]][["shape"]],
+                    denue_fit_gamma_filtrado_summary[["estimate"]][["rate"]])              
+      }
+  }
+
+  # the following does not look nice, but works as a temporal solution
+  row["r1"] <- random_list[1]
+  row["r2"] <- random_list[2]
+  row["r3"] <- random_list[3]
+  row["r4"] <- random_list[4]
+  row["r5"] <- random_list[5]
+  row["r6"] <- random_list[6]
+  row["r7"] <- random_list[7]
+  row["r8"] <- random_list[8]
+  row["r9"] <- random_list[9]
+  row["r10"] <- random_list[10]
+  
+  denue_trabajo_random = rbind(denue_trabajo_random,row)
+}
+
+dim(denue_trabajo_random)
+summary(denue_trabajo_random)
+```  
+
+## Guardar los datos generados como una tabla CSV
+
+```{r, echo = TRUE}
+write.table(denue_trabajo_random, file = "denue_AMG_ensayo_distribucion_resultado.csv", sep = ",")
+```                                         
