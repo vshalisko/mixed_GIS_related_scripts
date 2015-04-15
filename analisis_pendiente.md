@@ -128,6 +128,9 @@ H2_density <- density(my_data[my_data[["L2015_city"]] == '1',"PendGradAG"],adjus
 my_x <- seq(from = 0, to = 5.5, by = 0.1)
 my_predict <- approx(H2_density$x,H2_density$y,xout = my_x)
 
+# my_predict_2 <- approx(H2_density$x,H2_density$y,xout = 5)$y
+# my_predict_2
+
 plot(H2_density, col="blue", main='función de densidad')
 plot(my_predict, col="red", main='predicción de valores')
 ```
@@ -195,13 +198,6 @@ P0
 ```
 
 ![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5-1.png) 
-
-```r
-#curve(predict(P0_fit, data.frame(Temperature=x), type="resp"), 
-#      add=TRUE, col="red")
-
-#lines(seq(0,90,0.1), predict(P0_fit), type="l", col="red")
-```
 
 ### 5) Analisis por medio de regresión logistica (espacio construido)
 

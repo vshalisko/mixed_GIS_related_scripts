@@ -1,0 +1,101 @@
+Estidio de variables para analisis de aptitud: inclinación del terreno para la tema de inundación
+========================================================
+
+### 1) Cargar datos fuentes y representar su resumen
+
+
+```{r}
+library(lattice)
+library(foreign)
+
+my_path <- "C:\\temp"
+my_filename <- 'Sample_pend_incidencia_inundacion.dbf'
+
+my_breaks <- c(0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,90)
+
+
+my_data <- read.dbf(file.path(my_path, my_filename))
+dim(my_data)
+summary(my_data)
+
+P1 <- boxplot(my_data[,"PENDGRADAG"], col="lightgray", ylab="pendiente (°)")
+
+```
+
+### 2) Analisis de la función de densidad de eventos de inundación en función de pendiente
+
+```{r fig.width=10, fig.height=6}
+par(mfcol = c(1, 2), cex = 0.9)
+
+H1 <- hist(my_data[,"PENDGRADAG"],prob=FALSE, 
+          col="yellow", 
+          main='pendiente (inundación)', 
+          breaks=my_breaks, 
+          xlab="pendiente (°)", ylab="número de iundaciones")
+
+H2 <- hist(my_data[,"PENDGRADAG"],prob=TRUE, 
+          col="yellow", 
+          main='pendiente (inundación)', 
+          breaks=my_breaks, ylim=c(0,0.22),
+          xlab="pendiente (°)", ylab="densidad de probabilidad")
+
+H2 <- lines(density(my_data[,"PENDGRADAG"],adjust=3),
+            col="blue", lwd=1)
+
+
+H2_density <- density(my_data[,"PENDGRADAG"],adjust=3, from=0, to=90, n=2048)
+
+my_x <- seq(from = 0, to = 5.5, by = 0.1)
+my_predict <- approx(H2_density$x,H2_density$y,xout = my_x)
+
+# my_predict_2 <- approx(H2_density$x,H2_density$y,xout = 5)$y
+# my_predict_2
+
+plot(H2_density, col="blue", main='función de densidad')
+plot(my_predict, col="red", main='predicción de valores')
+
+```
+
+
+### 3) Recalculo de los valores de raster con la función de densidad
+
+```{r fig.width=7, fig.height=6}
+library(raster)
+x_raster <- raster("C:\\temp\\INEGI_UTM13_a30_slope_mini.tif")
+dim(x_raster)
+
+plot(x_raster, main="MDE pendiente inicial")
+
+#r <- getValues(x_raster)
+#length(r)
+#r[1:100]
+#for (i in 1:100 ) {
+#      r[i]
+#      interp <- approx(H2_density$x,H2_density$y,xout = r[i])
+#      interp <- interp$y
+#      print(interp)
+#}
+
+x_raster_mod <- calc(
+    x_raster, 
+    fun=function(x){ 
+      x
+      interp <- approx(H2_density$x,H2_density$y,xout = x)
+      interp <- interp$y
+      interp
+      return(as.numeric(interp))
+    } )
+
+x_raster_mod = x_raster_mod / maxValue(x_raster_mod)       # normalizando con el valor máximo
+
+x_raster_mod
+plot(x_raster_mod, main="MDE pendiente modificado")
+
+if (require(rgdal)) {
+  rf <- writeRaster(x_raster_mod, filename="C:\\temp\\INEGI_UTM13_a30_slope_mini_out.tif", format="GTiff", overwrite=TRUE)
+}
+
+```
+
+
+
