@@ -1,0 +1,158 @@
+
+### Resultados de densidad de poblacion 
+
+```{r}
+library(lattice)
+#library(foreign)
+
+my_path <- "C:\\Users\\Viacheslav\\Google Drive\\Projects_actual\\geo_Urbanismo_IMEPLAN\\IMEPLAN_t4"
+my_filename <- 'interCentHexSectores.csv'
+
+my_breaks <- c(0,5000,10000,15000,20000,30000,40000,50000)
+my_labels <- c("A","AA","B","BB","C","D","E")
+my_labels_position <- c(2500,7500,12500,17500,25000,35000,45000)
+my_df <- c(6,7,9,11,10,9,9,7)
+
+
+my_data <- read.csv(file.path(my_path, my_filename))
+dim(my_data)
+summary(my_data)
+
+P1 <- boxplot(my_data[,"Densidad_pob"], col="lightgray", ylab="Densidad poblacion (hab/km2)")
+```
+
+### Densidad de población por Sectores
+```{r fig.width=12, fig.height=10}
+par(mfcol = c(2, 2), cex = 0.9 , mar = c(3,5,2,1) + 0.1)
+
+
+B2 <- boxplot(my_data[my_data["Clave"]=='A',"Densidad"] ~ my_data[my_data["Clave"]=='A',"Sector"],
+              col=c('lightblue','yellow','lightgray','lightgreen',
+                    'pink','green','orange','blue','darkblue'), 
+              names=c('A1','A2','A3','A4','A5','A6','A7','A8'), las = 2,
+              xlab="", ylab="", 
+              ylim= c(0,25000), main = "A"
+              )
+title(ylab = "densidad poblacion (hab/km²)", line = -1)
+title(xlab = "sectores", line = -1)
+
+B4 <- boxplot(my_data[my_data["Clave"]=='B',"Densidad"] ~ my_data[my_data["Clave"]=='B',"Sector"],
+              col=c('lightblue','yellow','lightgray','lightgreen',
+                    'pink','green','orange','blue','darkblue'), 
+              names=c('B1','B2','B3','B4','B5','B6','B7','B8'), las = 2,
+             xlab="", ylab="", 
+             ylim= c(0,25000), main = "B"
+             )
+
+B1 <- boxplot(my_data[my_data["Clave"]=='AA',"Densidad"] ~ my_data[my_data["Clave"]=='AA',"Sector"],
+              col=c('lightblue','yellow','lightgray','lightgreen',
+                    'pink','green','orange','blue','darkblue'), 
+              names=c('AA1','AA2','AA3','AA4','AA5','AA6','AA7','AA8'), las = 2,
+              xlab="", ylab="", 
+              ylim= c(0,25000), main = "AA"
+              )
+
+B3 <- boxplot(my_data[my_data["Clave"]=='BB',"Densidad"] ~ my_data[my_data["Clave"]=='BB',"Sector"],
+              col=c('lightgray','lightgreen',
+                    'pink','green','orange','blue','darkblue'), 
+              names=c('BB3','BB4','BB5','BB6','BB7','BB8'), las = 2,
+              xlab="", ylab="", 
+              ylim= c(0,25000), main = "BB"
+              )
+
+```
+
+
+```{r fig.width=12, fig.height=10}
+plot(my_data[,"Distancia_km"],my_data[,"Densidad"], pch = 1, col = "red",
+              xlab="distancia del centro (km)", ylab="densidad poblacion (hab/km²)", 
+              ylim= c(0,25000), main = "Distancia vs. densidad de población residente", axes = FALSE)
+lines(smooth.spline(my_data[,"Distancia_km"],my_data[,"Densidad"], df=15), col='red', lty=1, lwd=3)
+axis(side = 2)
+axis(side=1, at=my_breaks, labels=my_breaks)
+mtext(my_labels, side=1, at=my_labels_position, line = 0.2, col= "red")
+
+```
+
+```{r fig.width=12, fig.height=10}
+
+plot(my_data[,"Distancia_km"],my_data[,"Densidad"], pch = NA,
+              xlab="distancia del centro (km)", ylab="densidad poblacion (hab/km²)", 
+              ylim= c(0,25000), main = "Distancia vs. densidad de población residente en 8 sectores", axes = FALSE)
+
+legend(30000, y=22000, 
+       c("Sector 1", "Sector 2","Sector 3", "Sector 4",
+         "Sector 5", "Sector 6","Sector 7", "Sector 8"), 
+       col = c("darkblue","brown","darkgray","darkgreen",
+               "pink","green","orange","blue"),
+       lty=1,lwd=2,ncol=2,box.lty=0)
+
+axis(side = 2)
+axis(side=1, at=my_breaks, labels=my_breaks)
+mtext(my_labels, side=1, at=my_labels_position, line = 0.2, col= "red")
+
+points(my_data[my_data["Sector"]=='1',c("Distancia_km","Densidad")], col='darkblue', pch = 1)
+points(my_data[my_data["Sector"]=='2',c("Distancia_km","Densidad")], col='brown', pch = 1)
+points(my_data[my_data["Sector"]=='3',c("Distancia_km","Densidad")], col='darkgray', pch = 1)
+points(my_data[my_data["Sector"]=='4',c("Distancia_km","Densidad")], col='darkgreen', pch = 1)
+points(my_data[my_data["Sector"]=='5',c("Distancia_km","Densidad")], col='pink', pch = 1)
+points(my_data[my_data["Sector"]=='6',c("Distancia_km","Densidad")], col='green', pch = 1)
+points(my_data[my_data["Sector"]=='7',c("Distancia_km","Densidad")], col='orange', pch = 1)
+points(my_data[my_data["Sector"]=='8',c("Distancia_km","Densidad")], col='blue', pch = 1)
+
+
+lines(smooth.spline(my_data[my_data["Sector"]=='1',"Distancia_km"],my_data[my_data["Sector"]=='1',"Densidad"], df=8), col='darkblue', lwd=2)
+lines(smooth.spline(my_data[my_data["Sector"]=='2',"Distancia_km"],my_data[my_data["Sector"]=='2',"Densidad"], df=8), col='brown', lwd=2)
+lines(smooth.spline(my_data[my_data["Sector"]=='3',"Distancia_km"],my_data[my_data["Sector"]=='3',"Densidad"], df=8), col='darkgray', lwd=2)
+lines(smooth.spline(my_data[my_data["Sector"]=='4',"Distancia_km"],my_data[my_data["Sector"]=='4',"Densidad"], df=10), col='darkgreen', lwd=2)
+lines(smooth.spline(my_data[my_data["Sector"]=='5',"Distancia_km"],my_data[my_data["Sector"]=='5',"Densidad"], df=8), col='pink', lwd=2)
+lines(smooth.spline(my_data[my_data["Sector"]=='6',"Distancia_km"],my_data[my_data["Sector"]=='6',"Densidad"], df=8), col='green', lwd=2)
+lines(smooth.spline(my_data[my_data["Sector"]=='7',"Distancia_km"],my_data[my_data["Sector"]=='7',"Densidad"], df=8), col='orange', lwd=2)
+lines(smooth.spline(my_data[my_data["Sector"]=='8',"Distancia_km"],my_data[my_data["Sector"]=='8',"Densidad"], df=8), col='blue', lwd=2)
+
+
+
+```
+
+```{r fig.width=10, fig.height=6}
+
+require(mgcv)
+
+for (i in 1:8) {
+
+# par(mfcol = c(1, 2), cex = 0.9)
+  
+y <- my_data[my_data["Sector"]==i,"Densidad"]
+x <- my_data[my_data["Sector"]==i,"Distancia_km"]
+  
+P1 <- plot(x, y, xlim=c(0,30000), ylim= c(0,25000),
+            xlab="distancia del centro (km)", ylab="densidad poblacion (hab/km²)", 
+               main = paste("Sector", i, sep = " "), axes = FALSE)
+
+axis(side=2)
+axis(side=1, at=my_breaks, labels=my_breaks)
+mtext(my_labels, side=1, at=my_labels_position, line = 0.2, col= "red")
+
+# lines(smooth.spline(x, y, df=8), col='blue', lty=5, lwd=1)
+
+sequence <- data.frame(x=seq(from=min(x), to=max(x), by=5))
+
+my_fit <- gam(y ~ s(x, k=my_df[i], fx = TRUE, bs="cr"))
+#P2 <- plot(my_fit,seWithMean=TRUE, scheme=2,
+#           shade=TRUE, shade.col="lightgreen", rug=FALSE, 
+#           xlim=c(0,30000), ylim= c(0,25000), axes = FALSE)
+
+my_response <- predict(my_fit, newdata=sequence, type="response", se.fit=TRUE)
+
+polygon(c(sequence$x,rev(sequence$x)),
+        c(my_response$fit - 1.96*my_response$se.fit, rev(my_response$fit + 1.96*my_response$se.fit)),
+        col = "lightgray", border = NA, density = 20)
+lines(sequence$x , my_response$fit, lwd = 2 , col = "red")
+lines(sequence$x , my_response$fit + 1.96*my_response$se.fit, lwd = 1 , col = "gray")
+lines(sequence$x , my_response$fit - 1.96*my_response$se.fit, lwd = 1 , col = "gray")
+
+print(summary(my_fit))
+
+}
+
+```
