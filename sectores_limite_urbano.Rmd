@@ -1,0 +1,283 @@
+
+
+```{r}
+my_path <- "C:\\Users\\Viacheslav\\Google Drive\\Projects_actual\\geo_Urbanismo_IMEPLAN\\IMEPLAN_t4"
+my_filename <- 'Random_points_sectors_25.csv'
+my_breaks <- c(0,5000,10000,15000,20000,30000,40000,50000)
+my_labels <- c("A","AA","B","BB","C","D","E")
+my_labels_position <- c(2500,7500,12500,17500,25000,35000,45000)
+my_years <- c(1995,2000,2005,2020,2025,2030)
+observation_years <- c(1990,1999,2010,2015)
+sequence_years <- c(1990,1995,2000,2005,2010,2015,2020,2025,2030)
+sequence_years_lwd <- c(3,2,3,2,3,3,2,2,2)
+observation_colors <- c("darkgreen","orange","blue","red")
+sequence_colors <- c("lightgray","pink","lightgreen","lightblue","green","gray")
+sequence2_colors <- c("darkgreen","lightgray","orange","lightgreen","blue","red","lightblue","green","gray")
+thresh  <- 0.5
+slope <- 0.001
+logistic_function <- function(P0_x,A,I) {
+  1 - (1 / (1 + exp( -A * P0_x + I )))
+}
+
+
+my_data <- read.csv(file.path(my_path, my_filename))
+dim(my_data)
+summary(my_data)
+```
+
+
+### Graficas de desplazamiento de limite de la ciudad por sector
+
+```{r fig.width=10, fig.height=6, warning=FALSE}
+
+as.numeric.factor <- function(x) {as.numeric(levels(x))[x]}
+
+growth_frame <- data.frame(years=sequence_years)
+
+for (i in 1:8) {
+
+par(mfcol = c(1, 1), cex = 0.9, mar = c(9,5,5,3))
+  
+P0_x <- my_data[my_data["Sector"]==i,"Distance"]
+P0_y2015 <- my_data[my_data["Sector"]==i,"u2015"]
+P0_y2010 <- my_data[my_data["Sector"]==i,"u2010"]
+P0_y1999 <- my_data[my_data["Sector"]==i,"u1999"]
+P0_y1990 <- my_data[my_data["Sector"]==i,"u1990"]
+
+P0_y2015 <- P0_y2015 | P0_y2010 | P0_y1999 | P0_y1990    # esnure increment only
+
+P0_fit2015 <- glm(P0_y2015 ~ offset(-slope * P0_x),
+               family=binomial(logit))
+P0_fit2010 <- glm(P0_y2010 ~ offset(-slope * P0_x),
+               family=binomial(logit))
+P0_fit1999 <- glm(P0_y1999 ~ offset(-slope * P0_x),
+               family=binomial(logit))
+P0_fit1990 <- glm(P0_y1990 ~ offset(-slope * P0_x),
+               family=binomial(logit))
+
+#print(summary(P0_fit2015))
+#print(summary(P0_fit2010))
+#print(summary(P0_fit1999))
+#print(summary(P0_fit1990))
+
+sequence <- data.frame(P0_x=seq(from=min(P0_x), to=max(P0_x), by=5))
+my_response2015 <- predict(P0_fit2015, newdata=sequence, type="response", se.fit=TRUE)
+my_response2010 <- predict(P0_fit2010, newdata=sequence, type="response", se.fit=TRUE)
+my_response1999 <- predict(P0_fit1999, newdata=sequence, type="response", se.fit=TRUE)
+my_response1990 <- predict(P0_fit1990, newdata=sequence, type="response", se.fit=TRUE)
+
+plot(P0_x, P0_y2015, col='red',
+     xlim=c(0,30000), ylim= c(0,1),
+            xlab="", ylab="", 
+            main = paste("Sector", i, sep = " "), axes = FALSE, pch = NA)
+
+axis(side=2)
+axis(side=1, line=3, at=my_breaks, labels=my_breaks)
+mtext(my_labels, side=1, at=my_labels_position, line = 3.2, col= "red")
+title(xlab = "distancia del centro (km)", line = 5.5)
+title(ylab = "presencia de urbanización", line = 3)
+mtext(c("sin urbanizar","urbanizado"), side=2, at=c(-0.1,1.1), line = -0.5, cex = 0.8, las = 1)
+
+text(25000, y=0.9, label="Observados", adj = c(0,0))
+legend(25000, y=0.9, 
+       observation_years, 
+       col = observation_colors,
+       lty=1,lwd=2,ncol=1,box.lty=0)
+
+text(25000, y=0.55, label="Estimados", adj = c(0,0))
+legend(25000, y=0.55, 
+       my_years, 
+       col = sequence_colors,
+       lty=2,lwd=1,ncol=1,box.lty=0)
+
+lines(sequence$P0_x , my_response2015$fit, lwd = 2 , col = observation_colors[4])
+lines(sequence$P0_x , my_response2010$fit, lwd = 2 , col = observation_colors[3])
+lines(sequence$P0_x , my_response1999$fit, lwd = 2 , col = observation_colors[2])
+lines(sequence$P0_x , my_response1990$fit, lwd = 2 , col = observation_colors[1])
+
+rug(P0_x[P0_y2015 == 0], side = 1, ticksize = 0.02, col= observation_colors[4], line=0.2)
+rug(P0_x[P0_y2015 == 1], side = 3, ticksize = 0.02, col= observation_colors[4], line=1.4)
+rug(P0_x[P0_y2010 == 0], side = 1, ticksize = 0.02, col= observation_colors[3], line=0.6)
+rug(P0_x[P0_y2010 == 1], side = 3, ticksize = 0.02, col= observation_colors[3], line=1.0)
+rug(P0_x[P0_y1999 == 0], side = 1, ticksize = 0.02, col= observation_colors[2], line=1.0)
+rug(P0_x[P0_y1999 == 1], side = 3, ticksize = 0.02, col= observation_colors[2], line=0.6)
+rug(P0_x[P0_y1990 == 0], side = 1, ticksize = 0.02, col= observation_colors[1], line=1.4)
+rug(P0_x[P0_y1990 == 1], side = 3, ticksize = 0.02, col= observation_colors[1], line=0.2)
+
+# Predicting growth
+
+limit <- c(           
+           P0_fit1990$coefficients / slope,
+           P0_fit1999$coefficients / slope,
+           P0_fit2010$coefficients / slope,
+           P0_fit2015$coefficients / slope
+           )
+
+date <- observation_years
+date2 <- observation_years^2
+growth_fit <- lm(limit ~ date + date2)
+
+if(growth_fit$coefficients["date2"] < 0) {
+  # use linear model instead if there are negative cuadratic member of polynomic
+  growth_fit <- glm(limit ~ date)
+}
+
+#print(summary(growth_fit))
+my_years_sequence <- data.frame(date=my_years,date2=my_years^2)
+growth_predict <- predict(growth_fit, newdata=my_years_sequence, type="response", se.fit=TRUE)
+
+lines(sequence$P0_x , logistic_function(sequence$P0_x,slope,growth_predict$fit[1]*slope), lty=2, lwd = 1 , col = sequence_colors[1])
+lines(sequence$P0_x , logistic_function(sequence$P0_x,slope,growth_predict$fit[2]*slope), lty=2, lwd = 1 , col = sequence_colors[2])
+lines(sequence$P0_x , logistic_function(sequence$P0_x,slope,growth_predict$fit[3]*slope), lty=2, lwd = 1 , col = sequence_colors[3])
+lines(sequence$P0_x , logistic_function(sequence$P0_x,slope,growth_predict$fit[4]*slope), lty=2, lwd = 1 , col = sequence_colors[4])
+lines(sequence$P0_x , logistic_function(sequence$P0_x,slope,growth_predict$fit[5]*slope), lty=2, lwd = 1 , col = sequence_colors[5])
+lines(sequence$P0_x , logistic_function(sequence$P0_x,slope,growth_predict$fit[6]*slope), lty=2, lwd = 1 , col = sequence_colors[6])
+
+# Output values
+
+print("Observados");
+print(paste("Limite observado en 1990: ",format(P0_fit1990$coefficients / slope,digits=5)," km"))
+print(paste("Limite observado en 1999: ",format(P0_fit1999$coefficients / slope,digits=5)," km"))
+print(paste("Limite observado en 2010: ",format(P0_fit2010$coefficients / slope,digits=5)," km"))
+print(paste("Limite observado en 2015: ",format(P0_fit2015$coefficients / slope,digits=5)," km"))
+
+print("Estimados");
+print(paste("Limite predición en 1995: ",format(growth_predict$fit[1],digits=5)," km"))
+print(paste("Limite predición en 2000: ",format(growth_predict$fit[2],digits=5)," km"))
+print(paste("Limite predición en 2005: ",format(growth_predict$fit[3],digits=5)," km"))
+print(paste("Limite predición en 2020: ",format(growth_predict$fit[4],digits=5)," km"))
+print(paste("Limite predición en 2025: ",format(growth_predict$fit[5],digits=5)," km"))
+print(paste("Limite predición en 2030: ",format(growth_predict$fit[6],digits=5)," km"))
+
+growth_frame <- cbind(growth_frame,c(P0_fit1990$coefficients/slope,
+                                     growth_predict$fit[1:3],
+                                     P0_fit2010$coefficients/slope,
+                                     P0_fit2015$coefficients/slope,
+                                     growth_predict$fit[4:6]))
+
+}
+
+```
+
+
+### Diagramas de "rosa"
+
+```{r fig.width=10, fig.height=10, warning=FALSE}
+
+colnames(growth_frame) <- c("year","S1","S2","S3","S4","S5","S6","S7","S8")
+growth_frame
+#stars(growth_frame[,2:9], draw.segments = FALSE, 
+#      scale=FALSE, radius=FALSE, locations = c(0,0),
+#      main = "Crecimeinto de límite de la ciudad",
+#      col.lines = c("darkgreen","lightgray","pink","lightgreen",
+#                    "blue","red","lightblue","green","gray"),
+#      key.labels = c("S1","S2","S3","S4","S5","S6","S7","S8"),
+#      key.loc = c(0,0)
+#      )
+
+require(plotrix)
+par(cex.lab= 0.8 )
+PP <- polar.plot(growth_frame[9,2:9],
+             polar.pos=c(0,45,90,135,180,225,270,315)+22.5,
+           labels = c("","","","","","","",""),
+           label.pos=c(0,45,90,135,180,225,270,315),
+           radial.lim = c(0,max(growth_frame[9,2:9])),
+           start=90,clockwise=TRUE,rp.type="s",
+           point.symbols = NA, show.grid.labels=3,grid.col = "lightgray")
+
+for (j in 1:9) {
+  
+  y <- c(as.numeric(growth_frame[j,2:9]))
+  x <- c(0,45,90,135,180,225,270,315)+22.5
+  
+  polar.plot(y,
+             polar.pos=x,
+             radial.lim = c(0,max(growth_frame[j,2:9])),
+           start=90,clockwise=TRUE,rp.type="p",
+           lwd=sequence_years_lwd[j],line.col=sequence2_colors[j],add=TRUE)
+  
+}
+
+text(25000, y=34000, label="Observados", adj = c(0,0))
+legend(25000, y=34000, 
+       observation_years, 
+       col = observation_colors,
+       lty=1,lwd=3,ncol=1,box.lty=0)
+
+text(25000, y=26000, label="Estimados", adj = c(0,0))
+legend(25000, y=26000, 
+       my_years[c(1,3:6)], 
+       col = sequence_colors[c(1,3:6)],
+       lty=1,lwd=2,ncol=1,box.lty=0)
+text(12300,y=25000,label="S1",col="red")
+text(-12300,y=25000,label="S8",col="red")
+text(12300,y=-25000,label="S4",col="red")
+text(-12300,y=-25000,label="S5",col="red")
+text(25000,y=12200,label="S2",col="red")
+text(25000,y=-12200,label="S3",col="red")
+text(-25000,y=-12200,label="S6",col="red")
+text(-25000,y=12200,label="S7",col="red")
+
+```
+
+### Diagramas de "rosa" suavizada
+
+```{r fig.width=10, fig.height=10, warning=FALSE}
+
+require(plotrix)
+require(mgcv)
+
+par(cex.lab= 0.8 )
+PP <- polar.plot(growth_frame[9,2:9],
+             polar.pos=c(0,45,90,135,180,225,270,315)+22.5,
+           labels = c("","","","","","","",""),
+           label.pos=c(0,45,90,135,180,225,270,315),
+           radial.lim = c(0,max(growth_frame[9,2:9])),
+           start=90,clockwise=TRUE,rp.type="s",
+           lwd=2,line.col="red",show.grid.labels=3)
+for (j in 1:9) {
+  y <- c(as.numeric(growth_frame[j,2:9]),as.numeric(growth_frame[j,2:7]))
+  x <- c(0,45,90,135,180,225,270,315,360,405,450,495,540,585)+22.5
+  
+#  polar.plot(y,
+#             polar.pos=x,
+#             radial.lim = c(0,max(growth_frame[9,2:9])),
+#           start=90,clockwise=TRUE,rp.type="p",
+#           lwd=1,line.col=j,add=TRUE)
+  
+  polar_sequence <- data.frame(x=seq(from=90, to=450, by=1))
+  my_polar_fit <- gam(y ~ s(x, k=13, fx = TRUE, bs="tp"))
+  my_predicted_y <- predict(my_polar_fit,newdata=polar_sequence, type="response", se.fit=TRUE)
+  
+  print(summary(my_polar_fit))
+  
+    polar.plot(as.numeric(my_predicted_y$fit),
+             polar.pos=polar_sequence$x,
+             radial.lim = c(0,max(growth_frame[9,2:9])),
+           start=90,clockwise=TRUE,rp.type="p",
+           lwd=sequence_years_lwd[j],line.col=sequence2_colors[j],add=TRUE)
+  
+}
+
+text(25000, y=34000, label="Observados", adj = c(0,0))
+legend(25000, y=34000, 
+       observation_years, 
+       col = observation_colors,
+       lty=1,lwd=3,ncol=1,box.lty=0)
+
+text(25000, y=26000, label="Estimados", adj = c(0,0))
+legend(25000, y=26000, 
+       my_years[c(1,3:6)], 
+       col = sequence_colors[c(1,3:6)],
+       lty=1,lwd=2,ncol=1,box.lty=0)
+text(12300,y=25000,label="S1",col="red")
+text(-12300,y=25000,label="S8",col="red")
+text(12300,y=-25000,label="S4",col="red")
+text(-12300,y=-25000,label="S5",col="red")
+text(25000,y=12200,label="S2",col="red")
+text(25000,y=-12200,label="S3",col="red")
+text(-25000,y=-12200,label="S6",col="red")
+text(-25000,y=12200,label="S7",col="red")
+
+
+```

@@ -18,7 +18,7 @@ my_data <- read.csv(file.path(my_path, my_filename))
 dim(my_data)
 summary(my_data)
 
-P1 <- boxplot(my_data[,"Densidad_pob"], col="lightgray", ylab="Densidad poblacion (hab/km2)")
+P1 <- boxplot(my_data[,"Densidad"], col="lightgray", ylab="Densidad poblacion (hab/km²)")
 ```
 
 ### Densidad de población por Sectores

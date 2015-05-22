@@ -39,12 +39,10 @@ summary(my_data)
 ```
 
 ```r
-P1 <- boxplot(my_data[,"Densidad_pob"], col="lightgray", ylab="Densidad poblacion (hab/km2)")
+P1 <- boxplot(my_data[,"Densidad"], col="lightgray", ylab="Densidad poblacion (hab/km²)")
 ```
 
-```
-## Error in `[.data.frame`(my_data, , "Densidad_pob"): undefined columns selected
-```
+![plot of chunk unnamed-chunk-1](figure/unnamed-chunk-1-1.png) 
 
 ### Densidad de población por Sectores
 
