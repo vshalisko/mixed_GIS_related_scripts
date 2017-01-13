@@ -1,0 +1,160 @@
+---
+title: "Control de calidad de clasificacion"
+author: "Viacheslav Shalisko"
+date: "14 de diciembre de 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(maptools)
+library(raster)
+```
+
+```{r}
+verbose = 0
+
+control_parcels_path <- "../Sampling/Sampling_ponits_1km_UTM_circles_habitat.shp"
+
+raster_path <- "../Landsat/LC2016_entregables/L2016_clasificado_tipos_de_habitat.tif"
+
+class_codes <- c(100,120,150,200)
+class_legend <- c("Artificial",
+                  "Inducido",
+                  "Natural",
+                  "Acuatico")
+class_col <- c("lightgray",
+               "orange",
+               "darkgreen",
+               "navy")
+
+```
+
+## Visualización declos datos espaciales
+
+```{r fig.height= 9.5, fig.width = 12}
+control_parcels <- readShapePoly(control_parcels_path)
+
+classification_raster <- raster(raster_path)
+dim(classification_raster)
+
+par(cex.axis = 0.8)
+plot(classification_raster, axes = TRUE, legend = FALSE, 
+     col = class_col, breaks = c(class_codes - 1,201), 
+     main="Clasificación y parcelas de control")
+plot(control_parcels, border = "red", add = TRUE)
+legend("bottom", horiz = TRUE,
+       legend = class_legend, fill = class_col, 
+       bty = "n", cex = 0.8)
+```
+
+```{r}
+## generar matriz de errores en blanco
+var_num <- length(class_codes)
+error_matrix <- matrix(rep(0,var_num * var_num), nrow = var_num, ncol = var_num)
+rownames(error_matrix) <- class_codes
+colnames(error_matrix) <- class_codes
+```
+
+## Muestreo del raster clasificado
+
+```{r  cache=TRUE}
+control_sampling <- extract(classification_raster, control_parcels)
+```
+
+## Generaión de matriz de confusión
+
+```{r}
+
+for (i in 1:length(control_sampling)) {
+  primary_class <- control_parcels@data$STDID1[i]
+  secondary_class <- control_parcels@data$STDID2[i]
+  antropic <- control_parcels@data$ANTRO[i]
+
+  if (verbose) {
+    cat("Parcela de control: ",as.character(control_parcels@data$GRID_ID[i]),"\n")
+    cat("Clase primario = ",primary_class,"\n")
+    cat("Clase secundario = ",secondary_class,"\n")
+    cat("Antrópico = ",antropic,"\n")    
+    cat("Pixeles observados = ",control_sampling[[i]],"\n")
+    cat("Número de pixeles = ",length(control_sampling[[i]]),"\n\n")
+  }  
+
+  for (j in 1:length(control_sampling[[i]])) {
+    if (control_sampling[[i]][j] == primary_class) {
+      # coincidencia de clase primario
+      ind_1 <- as.character(primary_class)
+      error_matrix[ind_1,ind_1] <- error_matrix[ind_1,ind_1] + 1
+    } else {
+      if (control_sampling[[i]][j] == secondary_class) {
+          # coincidencia de clase secundario
+          ind_1 <- as.character(secondary_class)
+          error_matrix[ind_1,ind_1] <- error_matrix[ind_1,ind_1] + 1
+      } else {
+          # valor primario esperado (de control) - filas del matriz
+          ind_1A <- as.character(primary_class)
+          # valor secundario esperado (de control) - filas del matriz          
+          ind_1B <- as.character(secondary_class)          
+          # valor observado (en clasificación) - columnas del matriz
+          ind_2 <- as.character(control_sampling[[i]][j])
+          error_matrix[ind_1A,ind_2] <- error_matrix[ind_1A,ind_2] + 0.5
+          error_matrix[ind_1B,ind_2] <- error_matrix[ind_1B,ind_2] + 0.5
+      }    
+    }
+  }
+}
+
+# representar matriz de confusión
+cat("Matriz de confusión:\n")
+round(error_matrix, digits = 0)
+
+```
+
+## Estimación del error de clasificación
+
+```{r}
+error_stat <- function(m, legend) {
+  n <- sum(m)
+  cat("Número de elementos: ",n,"\n")
+  d <- diag(m)
+
+  rowsums <- apply(m, 1, sum)
+  colsums <- apply(m, 2, sum)
+  p <- rowsums / n
+  q <- colsums / n
+  cat("\nSumas normalizadas en filas (p) y en columnas (q):","\n")
+  print(data.frame(legend,p,q))
+
+  # respuesta por clase
+  recall <- d / colsums 
+  # precición por clase
+  precision <- d / rowsums 
+  # Métrica F1 (media harmónica de precición y respuesta)
+  f1 <- 2 * precision * recall / (precision + recall)
+  cat("\nPrecición y respuesta por clase:","\n")
+  print(data.frame(legend,precision, recall, f1))
+  
+  # precición general
+  accuracy <- sum(d) / n
+  cat("\nPrecición general: ",accuracy,"\n")  
+  
+  # métrica de precición kappa
+  expaccuracy = sum(p * q)
+  kappa = (accuracy - expaccuracy) / (1 - expaccuracy)
+  cat("\nKappa de Cohen: ",kappa,"\n")
+  
+}
+
+error_stat(error_matrix, class_legend)
+
+```
+
+```{r}
+## obtener la estructura de la capa control_parcels
+#str(control_parcels)
+#as.character(control_parcels@data$GRID_ID)
+#as.character(control_parcels@data$STDID1)
+#as.character(control_parcels@data$STDID2)
+#as.character(control_parcels@data$ANTRO)
+```
+
