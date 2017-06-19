@@ -1,0 +1,347 @@
+---
+title: 'Clasificación de uso de suelo en Zapopan: estadisticas de signaturas'
+author: "Viacheslav Shalisko"
+date: "16 de junio de 2017"
+output: html_document
+---
+ 
+_language: output - spanish, code comments - english_
+
+```{r setup, include=FALSE}
+# set default chunk options (ouptut results and continue in case of errors)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(error = TRUE)
+
+# load required libraries
+library(maptools)
+library(raster)
+library(dismo)
+library(class)
+```
+
+```{r}
+verbose = 0
+
+control_parcels_path <- "Control_zones.shp"
+classification_path <- "../2016_classif/random/random_points_50000_buff100_dissok.shp"
+
+raster_path <- "../2016_corrections/compose_LC80290462016_feb_mar_8PC_incl_b8.TIF"
+raster_layers_names <- c("pc1","pc2","pc3","pc4","pc5","pc6","pc7","pc8")
+raster_layers_count <- 8
+
+class_codes <- c(100,101,103,105,110,115,120,130,135,150,155,160,161,190,192,195,197,200)
+class_legend <- c("Urbano",
+                  "Urbano disperso",
+                  "Infraestructura",
+                  "SVA",
+                  "Agr. riego",
+                  "Agr. temporal",
+                  "Pastizal",
+                  "Matorral",
+                  "BEsp",
+                  "BTC",
+                  "BTSC",
+                  "BTemp disp.",
+                  "BTemp dens.",
+                  "Golf",
+                  "AVU",
+                  "VAS",
+                  "BGal",
+                  "Agua")
+```
+
+```{r load-spatial-data}
+# load zone shape
+control_parcels <- readShapePoly(control_parcels_path)
+# load classification
+main_class <- readShapePoly(classification_path)
+
+# load only the first layer of the source raster
+raster_l1 <- raster(raster_path)
+dim(raster_l1)
+
+# load all layers of the source raster
+raster_stack<-stack(raster_path)
+dim(raster_stack)
+names(raster_stack) <- raster_layers_names
+```
+
+```{r draw-data, fig.height= 17, fig.width = 12}
+plot(raster_l1, axes = TRUE, legend = FALSE, 
+     main="Raster fuente y parcelas de control")
+plot(control_parcels, border = "red", add = TRUE)
+```
+
+```{r main-sampling-folding}
+# reduce number of sampling zones to less then 100 for each class
+for (j in 1:length(class_codes)) {
+  main_class_subset <- main_class[main_class@data$CLASS == class_codes[j],]
+  subzone_count <- 1 + floor(length(main_class_subset) / 100)
+  if (verbose) {
+    cat("Clase: ", class_codes[j], "\n")
+    cat("      Número de zonas: ", length(main_class_subset), "\n")
+    cat("      Número de subzonas inicial: ", subzone_count, "\n")
+  }
+  main_class_kfold_index <- kfold(main_class_subset, k = subzone_count)
+  main_class_subset_kfold <- main_class_subset[main_class_kfold_index == 1,]
+  if (verbose) {  
+    cat("      Numero de subzonas restante: ", length(main_class_subset_kfold), "\n")
+  }
+  if (j == 1) {
+    main_class_kfold <- main_class_subset_kfold
+  } else {
+    main_class_kfold <- rbind(main_class_kfold, main_class_subset_kfold)
+  }
+}
+cat("Numero de zonas de muestreo restante para todos clases: ",length(main_class_kfold), "\n")
+
+```
+
+```{r main-sampling, cache=TRUE}
+# sampling
+main_sampling <- extract(raster_stack, main_class_kfold)
+```
+
+```{r control-sampling, cache=TRUE}
+# sampling
+control_sampling <- extract(raster_stack, control_parcels)
+```
+
+
+#### Ejemplo de datos en class (promedio, sd, boxplot)
+
+```{r}
+# review example unit of data
+head(main_sampling[[1]])
+main_class_kfold@data$CLASS[1]
+dim(main_sampling[[1]])[1]
+apply(main_sampling[[1]],2,mean)
+apply(main_sampling[[1]],2,sd)
+boxplot(main_sampling[[1]], col = "lightgray")
+```
+
+#### Ejemplo de datos en parcela (promedio, sd, boxplot)
+
+```{r}
+# review example unit of data
+head(control_sampling[[1]])
+control_parcels@data$Code_1[1]
+dim(control_sampling[[1]])[1]
+apply(control_sampling[[1]],2,mean)
+apply(control_sampling[[1]],2,sd)
+boxplot(control_sampling[[1]], col = "lightgray")
+```
+
+### Tratamiento por clase
+#### Reacomodo de datos por clases de muestreo principal
+
+```{r class-rearrangement}
+# rearrange data to data.frame
+# create empty dataframe for main samping by class
+main_sampling_df <- data.frame(matrix(ncol = raster_layers_count + 1, nrow = 0))
+colnames(main_sampling_df) <- c(raster_layers_names,"CL")
+
+# put sampling result into dataframe, the extra column is for class (CL)
+for (i in 1:length(main_sampling)) {
+  c_length <- dim(main_sampling[[i]])[1]
+  id <- main_class_kfold@data$CLASS[i]
+  fl <- cbind(main_sampling[[i]], CL = rep(id,c_length))
+  main_sampling_df <- rbind(main_sampling_df,fl)
+}
+
+# optional standardize variables (only data columns)
+#main_sampling_df[,c(1:raster_layers_count)] <- scale(main_sampling_df[,c(1:raster_layers_count)]) 
+```
+
+#### Resumen de datos por clase y calculo de promedios por clase
+
+```{r class-treatment, fig.height= 6, fig.width = 12}
+# visualize variables by class
+boxplot( pc1 ~ CL, data = main_sampling_df, col = "lightgray")
+boxplot( pc2 ~ CL, data = main_sampling_df, col = "lightgray")
+boxplot( pc3 ~ CL, data = main_sampling_df, col = "lightgray")
+boxplot( pc4 ~ CL, data = main_sampling_df, col = "lightgray")
+boxplot( pc5 ~ CL, data = main_sampling_df, col = "lightgray")
+boxplot( pc6 ~ CL, data = main_sampling_df, col = "lightgray")
+boxplot( pc7 ~ CL, data = main_sampling_df, col = "lightgray")
+boxplot( pc8 ~ CL, data = main_sampling_df, col = "lightgray")
+
+# calculate class means
+M1 <-aggregate( . ~ CL, data = main_sampling_df, FUN = mean)
+row.names(M1) <- M1$CL
+raster_layers_count1 <- raster_layers_count + 1
+M1 <- M1[,c(2:raster_layers_count1)]
+M1
+```
+
+#### Relación entre clases
+
+```{r}
+# Ward Hierarchical Clustering
+D <- dist(M1, method = "euclidean")
+fit <- hclust(D, method="ward") 
+plot(fit) # display dendogram
+groups <- cutree(fit, k=5) # cut tree into 5 clusters
+# draw dendogram with red borders around the 5 clusters 
+rect.hclust(fit, k=5, border="red")
+```
+
+#### Reacomodo de datos por zonas de muestreo principal
+
+```{r zone-rearrangement}
+# rearrange data to data.frame
+# create empty dataframe for main samping by zone
+main_sampling_df2 <- data.frame(matrix(ncol = raster_layers_count + 1, nrow = 0))
+colnames(main_sampling_df2) <- c(raster_layers_names,"ZN")
+
+# put sampling result into dataframe, the extra column is for class (ZN)
+for (i in 1:length(main_sampling)) {
+  c_length <- dim(main_sampling[[i]])[1]
+  id <- main_class_kfold@data$DISS_CODE[i]
+  fl <- cbind(main_sampling[[i]], ZN = rep(id,c_length))
+  main_sampling_df2 <- rbind(main_sampling_df2,fl)
+  if (verbose) {
+    print(id)
+    print(main_class_kfold@data$CLASS[i])
+   }
+}
+
+```
+
+#### Calculo de promedios por zona
+
+```{r}
+# calculate main sampling zone means
+M3 <-aggregate( . ~ ZN, data = main_sampling_df2, FUN = mean)
+row.names(M3) <- M3$ZN
+raster_layers_count1 <- raster_layers_count + 1
+M3 <- M3[,c(2:raster_layers_count1)]
+#M3
+```
+
+### Determinar clase mas probable para cada zona de "main sampling" (K-nearets neighbour)
+
+```{r}
+# the order of elements in results of "aggregate" is not the same as in the original class,
+# so it is necessary to sort the class labels in same order as training set
+# following is to get original class label vector with same order as elements in M3
+main_sampling_classes <- c()
+M3_length <- dim(M3)[1]
+for (i in 1:M3_length) {
+  zone_code <- row.names(M3[i,])
+  zone_subset <- main_class_kfold[main_class_kfold@data$DISS_CODE == zone_code,]
+  zone_class <- zone_subset@data$CLASS
+  if (verbose) {  
+    cat("Zona: ", zone_code,"\n")
+    cat("Clase de zona: ", zone_class, "\n")
+  }
+  main_sampling_classes <- c(main_sampling_classes, zone_class)
+}
+  
+# check the dataset dimensions
+#dim(main_sampling_df2[,c(1:raster_layers_count)])
+#dim(M3)
+#length(main_sampling_df2[,"ZN"])
+
+# Predict the most probable class for each parcel
+prediction_M3 <- knn(main_sampling_df[,c(1:8)], # training set
+                  M3,                        # test set
+                  main_sampling_df[,"CL"],   # training class labels
+                  k = 50, prob = TRUE)
+
+M3_predict <- cbind(M3, prediction = prediction_M3, probability = attr(prediction_M3, "prob"), original = main_sampling_classes)
+table_M3_predict <- M3_predict[,c("original","prediction","probability")]
+write.csv(table_M3_predict,file = "tabla_M3_predict.csv")
+```
+
+#### Tabla con valores de predicción para cada zona de "main sampling"
+
+```{r}
+table_M3_predict
+```
+
+### Tratamiento por zonas de muestreo (test)
+
+```{r}
+# rearrange data to data.frame
+# create empty dataframe
+control_sampling_df <- data.frame(matrix(ncol = raster_layers_count + 1, nrow = 0))
+colnames(control_sampling_df) <- c(raster_layers_names,"ZN")
+
+# take every list unit and put it into dataframe, the extra column is for index
+for (i in 1:length(control_sampling)) {
+  c_length <- dim(control_sampling[[i]])[1]
+  id <- control_parcels@data$Id[i]
+  fl <- cbind(control_sampling[[i]], ZN = rep(id,c_length))
+  control_sampling_df <- rbind(control_sampling_df,fl)
+}
+
+# resumen of data per parcel
+for (i in 1:length(control_sampling)) {
+  if (verbose) {
+    # get parcel id
+    parcel_id <- control_parcels@data$Id[i]
+    cat("Parcela de control: ", as.character(parcel_id),"\n")
+    cat("Clase original: ",control_parcels@data$Code_2[i],"\n")      
+    # subset dataframe on parcel id
+    df_selection <- control_sampling_df[control_sampling_df$ZN == parcel_id,c(1:8)]    
+    # get summary
+    cat("Resumen","\n")
+    #print(summary(df_selection))
+    boxplot(df_selection, col = "lightgray")
+    cat("\n\n")
+  }  
+}
+
+# optional standardize variables (only data columns)
+# control_sampling_df[,c(1:raster_layers_count)] <- scale(control_sampling_df[,c(1:raster_layers_count)]) 
+
+M2 <-aggregate( . ~ ZN, data = control_sampling_df, FUN = mean)
+row.names(M2) <- M2$ZN
+raster_layers_count1 <- raster_layers_count + 1
+M2 <- M2[,c(2:raster_layers_count1)]
+M2
+
+```
+
+### Determinar clase mas probable para cada zona de muestreo complementario (K-nearets neighbour)
+
+```{r}
+# the order of elements in results of "aggregate" is not the same as in the original class,
+# so it is necessary to sort the class labels in same order as training set
+# following is to get original class label vector with same order as elements in M2
+control_sampling_classes <- c()
+M2_length <- dim(M2)[1]
+for (i in 1:M2_length) {
+  zone_code <- row.names(M2[i,])
+  zone_subset <- control_parcels[control_parcels@data$Id == zone_code,]
+  zone_class <- zone_subset@data$Code_2
+  if (verbose) {  
+    cat("Zona: ", zone_code,"\n")
+    cat("Clase de zona: ", zone_class, "\n")
+  }
+  control_sampling_classes <- c(control_sampling_classes, zone_class)
+}
+  
+# check the dataset dimensions
+#dim(main_sampling_df[,c(1:raster_layers_count)])
+#dim(M2)
+#length(main_sampling_df[,"CL"])
+
+# Predict the most probable class for each parcel
+prediction_M2 <- knn(main_sampling_df[,c(1:8)], # training set
+                  M2,                        # test set
+                  main_sampling_df[,"CL"],   # training class labels
+                  k = 50, prob = TRUE)
+
+M2_predict <- cbind(M2, prediction = prediction_M2, probability = attr(prediction_M2, "prob"), original = control_sampling_classes)
+table_M2_predict <- M2_predict[,c("original","prediction","probability")]
+write.csv(table_M2_predict,file = "tabla_M2_predict.csv")
+
+```
+
+#### Tabla con valores de predicción para cada zona de muestreo complementario
+
+```{r}
+table_M2_predict
+```
