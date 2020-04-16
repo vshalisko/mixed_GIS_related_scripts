@@ -1,0 +1,118 @@
+---
+title: "Tratamiento datos COVID-19 México"
+author: "Viacheslav Shalisko"
+date: "15/4/2020"
+output: html_document
+---
+
+```{r}
+fecha <- "15 de abril del 2020"
+datos <- read.csv("200415COVID19MEXICO.csv")
+
+str(datos)
+dim(datos)
+
+datos_positivos <- datos[datos$RESULTADO == 1,]
+dim(datos_positivos)
+```
+
+
+```{r}
+estados <- read.csv("Catalogos_0412_ENTIDADES.csv")
+str(estados)
+municipios <- read.csv("Catalogos_0412_MUNICIPIOS.csv")
+str(municipios)
+municipios2 <- read.csv("catalogo_municipios.csv")
+str(municipios2)
+```
+
+
+## Resumen de registros positivos por estado
+
+```{r fig.width = 10, fig.height = 8}
+casos_por_estado <- as.data.frame(table(datos_positivos$ENTIDAD_RES))
+colnames(casos_por_estado) <- c("estados","casos")
+
+## variable cpen - casos por estado con nombres
+cpen <- merge(x = casos_por_estado, y = estados, by.x = "estados", by.y = "CLAVE_ENTIDAD")
+
+cpen <- cpen[order(cpen$ENTIDAD_FEDERATIVA),]
+
+total_casos <- sum(cpen$casos)
+
+cat("Total de casos registrados para ",fecha,": ",total_casos)
+
+par(mar = c(18, 4, 4, 2))
+cpen_barplot <- barplot(height = cpen$casos, 
+        names.arg = cpen$ENTIDAD_FEDERATIVA,
+        las = 2, ylim = c(0, max(cpen$casos) + 100),
+        main = paste("Total casos por estado para ", fecha))
+
+text(x = cpen_barplot, y = cpen$casos + 40, labels = cpen$casos, cex = 0.8)
+
+```
+
+## Tabla de registros positivos por municipio
+
+```{r}
+options(width = 100)
+
+casos_por_municipio <- as.data.frame(table(datos_positivos$ENTIDAD_RES,datos_positivos$MUNICIPIO_RES))
+colnames(casos_por_municipio) <- c("estados","municipios","casos")
+#casos_por_municipio
+
+## variable cpmn - casos por municipio con nombres
+cpmn <- merge(x = casos_por_municipio, y = estados, by.x = "estados", by.y = "CLAVE_ENTIDAD", all.x = TRUE)
+cpmn <- merge(x = cpmn, y = municipios, #all.x = TRUE,
+              by.x = c("estados","municipios"), 
+              by.y = c("CLAVE_ENTIDAD","CLAVE_MUNICIPIO"))
+cpmn <- merge(x = cpmn, y = municipios2, #all.x = TRUE,
+              by.x = c("estados","municipios"), 
+              by.y = c("Cve_Ent","Cve_Mun"))
+
+
+cpmn <- cpmn[order(cpmn$casos, decreasing = TRUE),]
+
+cpmn$Clave_Mun_Ent_Texto <- as.numeric(as.character(cpmn$municipios)) + 
+                            1000 * as.numeric(as.character(cpmn$estados))
+cpmn$Clave_Mun_Ent_Texto <- sprintf("%05d", cpmn$Clave_Mun_Ent_Texto)
+
+
+str(cpmn)
+
+#cpmn
+
+tabla_cpmn <- cpmn[,c("casos","Nom_Loc","MUNICIPIO","ENTIDAD_FEDERATIVA","ABREVIATURA","Lat_Decimal","Lon_Decimal","Clave_Mun_Ent_Texto")]
+
+cat("Lista de 40 municipios con mayór incidencia para ",fecha)
+head(tabla_cpmn[,c(1,2,3,5,6,7)],n = 40L)
+
+write.csv(tabla_cpmn, file = paste("casos_por_municipio_",fecha,".csv"), row.names = FALSE)
+
+```
+
+
+## Mapa de casos COVID-19 por municipio para `r fecha`
+
+```{r fig.width = 10, fig.height = 8}
+library(leaflet)
+library(sp)
+e <- 2.71828182846
+
+ m2 <- leaflet()
+ m2 <- addTiles(m2)
+ m2 <- setView(m2, lng=-100, lat=24, zoom = 5)
+ 
+ 
+ cpmn <- cpmn[cpmn$casos > 0,]
+ 
+  ## layers
+ m2 <- addCircleMarkers(m2, lng = cpmn$Lon_Decimal, lat = cpmn$Lat_Decimal, 
+                        weight = 5 * log(cpmn$casos + 1, e), radius = 0, 
+                  color= "red", stroke = TRUE, fillOpacity = 1)
+ 
+ m2
+ 
+```
+
+
