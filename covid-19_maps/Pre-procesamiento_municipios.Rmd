@@ -1,0 +1,73 @@
+---
+title: "Tratamiento de municipios"
+author: "Viacheslav Shalisko"
+date: "15/4/2020"
+output: html_document
+---
+
+```{r}
+#localidades <- read.csv("AGEEML_20204151416304.csv", encoding = "UTF-8")
+localidades <- read.csv("AGEEML_20204151416304_m.csv")
+
+dim(localidades)
+str(localidades)
+#head(localidades)
+
+estados <- read.csv("Catalogos_0412_ENTIDADES.csv")
+```
+
+```{r}
+#localidades[localidades == '-'] <- NA
+localidades$Lat_Decimal <- as.numeric(as.character(localidades$Lat_Decimal))
+localidades$Lon_Decimal <- as.numeric(as.character(localidades$Lon_Decimal))
+localidades$Pob_Total <- as.numeric(as.character(localidades$Pob_Total))
+localidades$Nom_Loc <- as.character(localidades$Nom_Loc)
+localidades$Nom_Mun <- as.character(localidades$Nom_Mun)
+localidades$Nom_Ent <- as.character(localidades$Nom_Ent)
+#head(localidades)
+
+localidades <- localidades[order(localidades$Pob_Total, decreasing = TRUE),]
+head(localidades)
+```
+
+```{r}
+localidades$Cve_Mun_Ent <- localidades$Cve_Mun + 1000 * localidades$Cve_Ent
+subtotales_por_municipio <- aggregate(Pob_Total ~ Cve_Mun_Ent, data = localidades, FUN = "sum")
+colnames(subtotales_por_municipio) <- c("Cve_Mun_Ent", "Pob_Municipio")
+str(subtotales_por_municipio)
+
+localidades_seleccionados <- localidades[ !duplicated(localidades$Cve_Mun_Ent), ]
+
+localidades_seleccionados <- merge(x = localidades_seleccionados, y = subtotales_por_municipio, 
+                                   by = "Cve_Mun_Ent")
+
+colnames(localidades_seleccionados)[colnames(localidades_seleccionados) == 'Pob_Total'] <- 'Pob_Localidad'
+
+head(localidades_seleccionados)
+dim(localidades_seleccionados)
+str(localidades_seleccionados)
+
+localidades_seleccionados <- localidades_seleccionados[,c("Cve_Ent","Cve_Mun","Nom_Loc",
+                                                          "Nom_Mun","Nom_Ent",
+                                                          "Lat_Decimal","Lon_Decimal",
+                                                          "Pob_Localidad", "Pob_Municipio")]
+str(localidades_seleccionados)
+
+nom_entidad_desconocidos <- c(as.character(estados$ENTIDAD_FEDERATIVA))
+
+datos_desconocidos <- data.frame(Cve_Ent = c(1:32,36,97,98,99), Cve_Mun = rep(999,36), 
+           Nom_Loc = rep("NO ESPECIFICADO",36), Nom_Mun = rep("NO ESPECIFICADO",36),
+           Nom_Ent = nom_entidad_desconocidos, Lat_Decimal = rep(NA, 36),
+           Lon_Decimal = rep(NA, 36), Pob_Localidad = rep(NA, 36), Pob_Municipio = rep(NA, 36)
+           )
+
+localidades_seleccionados <- rbind(
+  localidades_seleccionados, datos_desconocidos
+)
+
+
+
+
+write.csv(localidades_seleccionados, file = "catalogo_municipios.csv", row.names = FALSE)
+```
+
