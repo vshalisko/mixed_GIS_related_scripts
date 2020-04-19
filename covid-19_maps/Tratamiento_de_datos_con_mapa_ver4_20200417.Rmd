@@ -1,7 +1,7 @@
 ---
-title: "Tratamiento datos COVID-19 México 16/04/2020"
+title: "Tratamiento datos COVID-19 México 17/04/2020"
 author: "Viacheslav Shalisko"
-date: "16/4/2020"
+date: "17/4/2020"
 output: html_document
 ---
 
@@ -9,9 +9,9 @@ output: html_document
 datos abiertos SSA <https://www.gob.mx/salud/documentos/datos-abiertos-152127>
 
 ```{r echo = FALSE}
-fecha <- "16 de abril del 2020"
-datos <- read.csv("200416COVID19MEXICO.csv")
-datos_ayer <- read.csv("200415COVID19MEXICO.csv")
+fecha <- "17 de abril del 2020"
+datos <- read.csv("200417COVID19MEXICO.csv")
+datos_ayer <- read.csv("200416COVID19MEXICO.csv")
 
 
 datos$FECHA_INGRESO <- as.POSIXct(datos$FECHA_INGRESO)
@@ -66,7 +66,7 @@ datos_negativos <- datos[datos$RESULTADO == 2,]
 datos_pendientes <- datos[datos$RESULTADO == 3,]
 #dim(datos_pendientes)
 
-datos_defunciones <- datos[datos$RESULTADO == 1 & datos$FECHA_DEF != '9999-99-99',]
+datos_defunciones <- datos[datos$RESULTADO == 1 & datos$FECHA_DEF != '',]
 #dim(datos_defunciones)
 
 datos_positivos_ayer <- datos_ayer[datos_ayer$RESULTADO == 1,]
@@ -170,8 +170,8 @@ cpen_barplot <- barplot(height = cpen$casos,
 barplot(height = cpen$casos_ayer, col = "gray", 
                         axes = FALSE, add = TRUE)
 
-text(x = cpen_barplot, y = cpen$casos + 90, labels = cpen$casos, cex = 0.8)
-text(x = cpen_barplot, y = cpen$casos + 35, labels = paste("+", cpen$aumento_casos), 
+text(x = cpen_barplot, y = cpen$casos + 110, labels = cpen$casos, cex = 0.8)
+text(x = cpen_barplot, y = cpen$casos + 45, labels = paste("+", cpen$aumento_casos), 
      col = "red", cex = 0.6)
 
 
@@ -248,8 +248,8 @@ dpen_barplot <- barplot(height = dpen$defunciones,
 barplot(height = dpen$defunciones_ayer, col = "gray",
                         axes = FALSE, add = TRUE)
 
-text(x = dpen_barplot, y = dpen$defunciones + 7, labels = dpen$defunciones, cex = 0.8)
-text(x = dpen_barplot, y = dpen$defunciones + 3.5, labels = paste("+", dpen$aumento_defunciones),
+text(x = dpen_barplot, y = dpen$defunciones + 10, labels = dpen$defunciones, cex = 0.8)
+text(x = dpen_barplot, y = dpen$defunciones + 5, labels = paste("+", dpen$aumento_defunciones),
      col = "red", cex = 0.6)
 ```
 
@@ -287,6 +287,7 @@ npen$proporcion_pendientes <- 100 * npen$pendientes / (npen$pruebas + npen$pendi
 npen$proporcion_negativos_con_pendientes <- 100 - npen$proporcion_positivos_con_pendientes - npen$proporcion_pendientes
 
 npen$pruebas_por_100k <- 100000 * (npen$pruebas + npen$pendientes) / npen$Poblacion
+npen$casos_por_100k <- 100000 * npen$casos / npen$Poblacion
 
 npen <- npen[order(npen$ENTIDAD_FEDERATIVA),]
 
@@ -324,8 +325,6 @@ kable(npen[,c("estados","ENTIDAD_FEDERATIVA",
                     )
       )
 
-
-
 ```
 
 # Histogramas de pruebas por estado
@@ -340,11 +339,9 @@ npen_barplot <- barplot(height = npen$pruebas,
 barplot(height = npen$pruebas_ayer, col = "gray",
                         axes = FALSE, add = TRUE)
 
-text(x = npen_barplot, y = npen$pruebas + 500, labels = npen$pruebas, cex = 0.7)
-text(x = npen_barplot, y = npen$pruebas + 200, labels = paste("+", npen$aumento_pruebas),
+text(x = npen_barplot, y = npen$pruebas + 600, labels = npen$pruebas, cex = 0.7)
+text(x = npen_barplot, y = npen$pruebas + 300, labels = paste("+", npen$aumento_pruebas),
      col = "red", cex = 0.6)
-
-
 
 ```
 
@@ -378,6 +375,8 @@ npen_barplot1 <- barplot(height = npen$pruebas_por_100k,
         main = paste("Pruebas por 100k habitantes por estado para ", fecha))
 text(x = npen_barplot1, y = npen$pruebas_por_100k + 10, labels = round(npen$pruebas_por_100k,0), cex = 0.7)
 ```
+
+
 
 # Relación entre número de casos confirmados y numero de pruebas por estados de México
 
@@ -591,6 +590,7 @@ write.csv(tabla_cpmn, file = paste("casos_por_municipio_analisis_semanas_",fecha
        )
 
 ```
+
 
 # Relación entre número de casos confirmados y numero de pruebas por municipios de México (ejes lineales)
 
