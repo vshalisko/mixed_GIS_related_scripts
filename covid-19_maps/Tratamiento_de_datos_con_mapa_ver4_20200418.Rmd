@@ -2,7 +2,9 @@
 title: "Tratamiento datos COVID-19 México 18/04/2020"
 author: "Viacheslav Shalisko"
 date: "18/4/2020"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ### Datos fuente
@@ -90,6 +92,12 @@ knitr::asis_output(htmltools::htmlPreserve("
 @media print
 {
 h1 {page-break-before:always}
+.legend {
+   visble:visible;
+   background:white !important;
+   -webkit-print-color-adjust: exact;
+   opacity: 1;
+  }
 }
 </style>
 "))
@@ -682,7 +690,7 @@ axis(1, at = log(c(1,2,5,10,20,50,100,200,500),e), labels = c(1,2,5,10,20,50,100
 ```{r echo=FALSE}
 ## Función para generar leyenda con circulos
  addLegendCustom <- function(map, title, colors, labels, sizes, position, group, opacity = 0.5) {
-  colorAdditions <- paste0(colors, "; border-radius: 50%; width:", sizes, "px; height:", sizes, "px")
+  colorAdditions <- paste0(colors, " !important; -webkit-print-color-adjust: exact; border-radius: 50%; width:", sizes, "px; height:", sizes, "px")
   labelAdditions <- paste0("<div style='display: inline-block; height: ", 
                            sizes, "px; margin-top: 4px; line-height: ", sizes, "px;'>", 
                            labels, "</div>")
