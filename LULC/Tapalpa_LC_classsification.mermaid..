@@ -1,0 +1,5 @@
+flowchart LR
+  A1[Habitat]-->B1[Natural]
+  A1-->B2[Inducido]
+  A1-->B3[Artificial]
+  A1-->B4[Acuatico]
