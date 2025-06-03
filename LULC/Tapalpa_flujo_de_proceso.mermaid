@@ -17,6 +17,9 @@ flowchart TD
     DIGR@{ shape: lin-rect, label: "Codificación y rasterización de objetos"}
     HRR@{ shape: docs, label: "Capas de objetos rasterizados de alta resolución 5 m"}
     TZ@{ shape: trap-t, label: "Definición de zonas de entrenamiento"}
+    ZT1@{ shape: circle, label: "ZT" }
+    ZT2@{ shape: circle, label: "ZT" }
+    ZT2@{ shape: circle, label: "ZT" }
     KMEAN1@{ shape: lin-rect, label: "Analisis KMEANs Landsat 8-9"}
     KMEAN2@{ shape: lin-rect, label: "Analisis KMEANs Sentinel 2"}
     TRAIN1@{ shape: lin-rect, label: "Entrenamiento clasificador Landsat 8-9"}
@@ -46,6 +49,7 @@ flowchart TD
         L8C-->PCA1
         PCA1-->KMEAN1
         PCA1-->TRAIN1
+        ZT2-->TRAIN1
         TRAIN1-->CLASS1
         PCA1-->CLASS1
     end
@@ -53,6 +57,7 @@ flowchart TD
         S2C-->PCA2
         PCA2-->KMEAN2
         PCA2-->TRAIN2
+        ZT3-->TRAIN2
         TRAIN2-->CLASS2
         PCA2-->CLASS2
     end
@@ -62,8 +67,7 @@ flowchart TD
 
     subgraph s3["Fotointerpretación y digitalización"]
         HR-->TZ
-        TZ-->TRAIN1
-        TZ-->TRAIN2
+        TZ-->TZ1
         HR-->DIG
         DIG-->DIGR
         DIGR-->HRR
