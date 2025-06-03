@@ -33,9 +33,6 @@ flowchart TD
     LULCA@{ shape: doc, label: "Estatura de arbolado esperada 2025"}
     LULCC@{ shape: doc, label: "Cobertura de arbolado esperada 2025"}
 
-
-    
-
     L8-->SIG
     S2-->SIG
     MDE-->SIG
@@ -51,16 +48,15 @@ flowchart TD
         TRAIN1-->CLASS1
         PCA1-->CLASS1
     end
-    
-    CLIP-->S2C
-    S2C-->PCA2
-    PCA2-->KMEAN2
+    subgraph s2["Sentinel"]
+        CLIP-->S2C
+        S2C-->PCA2
+        PCA2-->KMEAN2
+        PCA2-->TRAIN2
+        TRAIN2-->CLASS2
+        PCA2-->CLASS2
+    end
 
-    PCA2-->TRAIN2
-
-    TRAIN2-->CLASS2
-
-    PCA2-->CLASS2
     CLASS1-->FUS1
     CLASS2-->FUS1
 
