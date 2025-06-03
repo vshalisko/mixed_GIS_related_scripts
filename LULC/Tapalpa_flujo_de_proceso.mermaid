@@ -23,8 +23,17 @@ flowchart LR
     TRAIN2@{ shape: lin-rect, label: "Entrenamiento clasificador Sentinel 2"}
     CLASS1@{ shape: lin-rect, label: "Clasificacion Landsat 8-9"}
     CLASS2@{ shape: lin-rect, label: "Clasificacion Sentinel 2"}
+    REG@{ shape: procs, label: "Regularización espacial"}
     FUS1@{ shape: cross-circ, label: "Fusión de clasificaicones" }
     FUS2@{ shape: cross-circ, label: "Fusión con objetos rasterizados" }
+    RECLASS@{ shape: procs, label: "Reclasificaciones"}
+    LULC@{ shape: doc, label: "Uso de suelo y vegetación 2025"}
+    LULCGR@{ shape: doc, label: "Grupos de uso de suelo y vegetación 2025"}
+    LULCH@{ shape: doc, label: "Tipos de hábitat 2025"}
+    LULCA@{ shape: doc, label: "Estatura de arbolado esperada 2025"}
+    LULCC@{ shape: doc, label: "Cobertura de arbolado esperada 2025"}
+
+
     
 
     L8-->SIG
@@ -51,8 +60,16 @@ flowchart LR
 
     HR-->TZ
     HR-->DIG
-    DIG-->DIG2
+    DIG-->DIGR
     DIGR-->HRR
-    FUS1-->FUS2
+    FUS1-->REG
+    REG-->FUS2
     HRR-->FUS2
+
+    FUS2-->RECLASS
+    RECLASS-->LULC
+    RECLASS-->LULCH
+    RECLASS-->LULCRG
+    RECLASS-->LULCA
+    RECLASS-->LULCC
     
