@@ -43,7 +43,7 @@ flowchart TD
     CLIP-->L8C
     CLIP-->S2C
 
-    subgraph s3["Fotointerpretación y digitalización"]
+    subgraph s0["Digitalización"]
         HR-->TZ
         TZ-->ZT1
         MDE-->DIG
@@ -52,7 +52,7 @@ flowchart TD
         DIGR-->HRR
     end
 
-    subgraph s1["Landsat"]
+    subgraph s1["Landsat 8-9"]
         L8C-->SAVI
         SAVI-->PCA1
         L8C-->PCA1
@@ -62,7 +62,8 @@ flowchart TD
         TRAIN1-->CLASS1
         PCA1-->CLASS1
     end
-    subgraph s2["Sentinel"]
+
+    subgraph s2["Sentinel 2"]
         S2C-->PCA2
         PCA2-->KMEAN2
         PCA2-->TRAIN2
