@@ -16,6 +16,16 @@ flowchart LR
     DIG@{ shape: trap-t, label: "Digitalización de razgos antropicos"}
     DIGR@{ shape: lin-rect, label: "Codificación y rasterización de objetos"}
     HRR@{ shape: docs, label: "Capas de objetos rasterizados de alta resolución 5 m"}
+    TZ@{ shape: trap-t, label: "Definición de zonas de entrenamiento"}
+    KMEAN1{ shape: lin-rect: "Analisis KMEANs Landsat 8-9"}
+    KMEAN2{ shape: lin-rect: "Analisis KMEANs Sentinel 2"}
+    TRAIN1{ shape: lin-rect: "Entrenamiento clasificador Landsat 8-9"}
+    TRAIN2{ shape: lin-rect: "Entrenamiento clasificador Sentinel 2"}
+    CLASS1{ shape: lin-rect: "Clasificacion Landsat 8-9"}
+    CLASS2{ shape: lin-rect: "Clasificacion Sentinel 2"}
+    FUS1@{ shape: cross-circ, label: "Fusión de clasificaicones" }
+    FUS2@{ shape: cross-circ, label: "Fusión con objetos rasterizados" }
+    
 
     L8-->SIG
     S2-->SIG
@@ -28,9 +38,21 @@ flowchart LR
     SAVI-->PCA1
     L8C-->PCA1
     S2C-->PCA2
+    PCA1-->KMEAN1
+    PCA2-->KMEAN2
+    PCA1-->TRAIN1
+    PCA2-->TRAIN2
+    TRAIN1-->CLASS1
+    TRAIN2-->CLASS2
+    PCA1-->CLASS1
+    PCA2-->CLASS2
+    CLASS1-->FUS1
+    CLASS2-->FUS1
 
+    HR-->TZ
     HR-->DIG
     DIG-->DIG2
-    DIG2-->HRR
-    
+    DIGR-->HRR
+    FUS1-->FUS2
+    HRR-->FUS2
     
