@@ -1,7 +1,7 @@
 ---
 title: Flujo de proceso
 ---
-flowchart LR
+flowchart TD
     L8@{ shape: docs, label: "Imagenes Landsat 8-9 Level 2 reflectancia superficie 2025 30 m"}
     S2@{ shape: docs, label: "Imagenes Sentinel 2 L2 reflectancia superficie 2025 10 m"}
     HR@{ shape: docs, label: "Datos de alta resolución Google Earth Engine (Airbus, SPOT) 1-5 m"}
@@ -28,7 +28,7 @@ flowchart LR
     FUS2@{ shape: cross-circ, label: "Fusión con objetos rasterizados" }
     RECLASS@{ shape: procs, label: "Reclasificaciones"}
     LULC@{ shape: doc, label: "Uso de suelo y vegetación 2025"}
-    LULCGR@{ shape: doc, label: "Grupos de uso de suelo y vegetación 2025"}
+    LULCG@{ shape: doc, label: "Grupos de uso de suelo y vegetación 2025"}
     LULCH@{ shape: doc, label: "Tipos de hábitat 2025"}
     LULCA@{ shape: doc, label: "Estatura de arbolado esperada 2025"}
     LULCC@{ shape: doc, label: "Cobertura de arbolado esperada 2025"}
@@ -69,7 +69,7 @@ flowchart LR
     FUS2-->RECLASS
     RECLASS-->LULC
     RECLASS-->LULCH
-    RECLASS-->LULCRG
+    RECLASS-->LULCG
     RECLASS-->LULCA
     RECLASS-->LULCC
     
