@@ -7,9 +7,20 @@ flowchart LR
     HR@{ shape: docs, label: "Datos de alta resolución Google Earth Engine (Airbus, SPOT) 1-5 m"}
     MDE@{ shape: doc, label: "MDE CEM v3 15 m"}
     SIG@{ shape: lin-rect, label: "Control de georefferenciación en SIG"}
+    CLIP@{ shape: lin-rect, label: "Recorte"}
     SAVI@{ shape: procs, label: "Indices radiometricos SAVI, NDWI, RI, CI, BI"}
+    PCA1{ shape: lin-rect, label: "Analisis de componentes principales multifecha Landsat"}
+    PCA2{ shape: lin-rect, label: "Analisis de componentes principales multifecha Sentinel"}
     L8-->SIG
     S2-->SIG
     MDE-->SIG
     HR-->SIG
+    SIG-->CLIP
+    CLIP-->L8C
+    CLIP-->S2C
+    L8C-->SAVI
+    SAVI-->PCA1
+    L8C-->PCA1
+    S8C-->PCA2
+    
     
