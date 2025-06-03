@@ -6,8 +6,8 @@ flowchart LR
     S2@{ shape: docs, label: "Imagenes Sentinel 2 L2 reflectancia superficie 2025 10 m"}
     HR@{ shape: docs, label: "Datos de alta resolución Google Earth Engine (Airbus, SPOT) 1-5 m"}
     MDE@{ shape: doc, label: "MDE CEM v3 15 m"}
-    SIG@{ shape: lin-rect, label: "Control de georefferenciación en SIG" }
-    SAVI{ shape: procs, label: "Indices radiometricos SAVI, NDWI, RI, CI, BI"}
+    SIG@{ shape: lin-rect, label: "Control de georefferenciación en SIG"}
+    SAVI@{ shape: procs, label: "Indices radiometricos SAVI, NDWI, RI, CI, BI"}
     L8-->SIG
     S2-->SIG
     MDE-->SIG
