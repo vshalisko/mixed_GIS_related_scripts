@@ -39,21 +39,27 @@ flowchart TD
     L8-->SIG
     S2-->SIG
     MDE-->SIG
-    
     SIG-->CLIP
-    CLIP-->L8C
+
+    subgraph s1["Landsat"]
+        CLIP-->L8C
+        L8C-->SAVI
+        SAVI-->PCA1
+        L8C-->PCA1
+        PCA1-->KMEAN1
+        PCA1-->TRAIN1
+        TRAIN1-->CLASS1
+        PCA1-->CLASS1
+    end
+    
     CLIP-->S2C
-    L8C-->SAVI
-    SAVI-->PCA1
-    L8C-->PCA1
     S2C-->PCA2
-    PCA1-->KMEAN1
     PCA2-->KMEAN2
-    PCA1-->TRAIN1
+
     PCA2-->TRAIN2
-    TRAIN1-->CLASS1
+
     TRAIN2-->CLASS2
-    PCA1-->CLASS1
+
     PCA2-->CLASS2
     CLASS1-->FUS1
     CLASS2-->FUS1
