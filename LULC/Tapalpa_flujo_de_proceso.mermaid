@@ -19,7 +19,7 @@ flowchart TD
     TZ@{ shape: trap-t, label: "Definición de zonas de entrenamiento"}
     ZT1@{ shape: circle, label: "ZT" }
     ZT2@{ shape: circle, label: "ZT" }
-    ZT2@{ shape: circle, label: "ZT" }
+    ZT3@{ shape: circle, label: "ZT" }
     KMEAN1@{ shape: lin-rect, label: "Analisis KMEANs Landsat 8-9"}
     KMEAN2@{ shape: lin-rect, label: "Analisis KMEANs Sentinel 2"}
     TRAIN1@{ shape: lin-rect, label: "Entrenamiento clasificador Landsat 8-9"}
@@ -43,6 +43,14 @@ flowchart TD
     CLIP-->L8C
     CLIP-->S2C
 
+    subgraph s3["Fotointerpretación y digitalización"]
+        HR-->TZ
+        TZ-->ZT1
+        HR-->DIG
+        DIG-->DIGR
+        DIGR-->HRR
+    end
+
     subgraph s1["Landsat"]
         L8C-->SAVI
         SAVI-->PCA1
@@ -64,14 +72,6 @@ flowchart TD
 
     CLASS1-->FUS1
     CLASS2-->FUS1
-
-    subgraph s3["Fotointerpretación y digitalización"]
-        HR-->TZ
-        TZ-->TZ1
-        HR-->DIG
-        DIG-->DIGR
-        DIGR-->HRR
-    end
 
     FUS1-->REG
     REG-->FUS2
