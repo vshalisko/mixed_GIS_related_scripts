@@ -13,11 +13,14 @@ flowchart LR
     PCA2@{ shape: lin-rect, label: "Analisis de componentes principales multifecha Sentinel"}
     L8C@{ shape: docs, label: "Landsat 8-9 recorte multifecha"}
     S2C@{ shape: docs, label: "Sentinel 2 recorte multifecha"}
+    DIG@{ shape: trap-t, label: "Digitalización de razgos antropicos"}
+    DIGR@{ shape: lin-rect, label: "Codificación y rasterización de objetos"}
+    HRR@{ shape: docs, label: "Capas de objetos rasterizados de alta resolución 5 m"}
 
     L8-->SIG
     S2-->SIG
     MDE-->SIG
-    HR-->SIG
+    
     SIG-->CLIP
     CLIP-->L8C
     CLIP-->S2C
@@ -25,5 +28,9 @@ flowchart LR
     SAVI-->PCA1
     L8C-->PCA1
     S2C-->PCA2
+
+    HR-->DIG
+    DIG-->DIG2
+    DIG2-->HRR
     
     
